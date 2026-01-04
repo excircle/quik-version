@@ -126,3 +126,31 @@ func ParseRepoURL(url string) (owner, repo string, err error) {
 
 	return parts[0], parts[1], nil
 }
+
+// PullRequest represents a created PR
+type PullRequest struct {
+	Number  int
+	URL     string
+	Title   string
+}
+
+// CreatePR creates a pull request from head branch to base branch
+func (c *Client) CreatePR(ctx context.Context, owner, repo, title, body, head, base string) (*PullRequest, error) {
+	pr := &github.NewPullRequest{
+		Title: github.Ptr(title),
+		Body:  github.Ptr(body),
+		Head:  github.Ptr(head),
+		Base:  github.Ptr(base),
+	}
+
+	created, _, err := c.PullRequests.Create(ctx, owner, repo, pr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pull request: %w", err)
+	}
+
+	return &PullRequest{
+		Number: created.GetNumber(),
+		URL:    created.GetHTMLURL(),
+		Title:  created.GetTitle(),
+	}, nil
+}
