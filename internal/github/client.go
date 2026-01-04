@@ -154,3 +154,41 @@ func (c *Client) CreatePR(ctx context.Context, owner, repo, title, body, head, b
 		Title:  created.GetTitle(),
 	}, nil
 }
+
+// GetLatestCommitSHA gets the SHA of the latest commit on a branch
+func (c *Client) GetLatestCommitSHA(ctx context.Context, owner, repo, branch string) (string, error) {
+	ref, _, err := c.Git.GetRef(ctx, owner, repo, "refs/heads/"+branch)
+	if err != nil {
+		return "", fmt.Errorf("failed to get branch ref: %w", err)
+	}
+	return ref.GetObject().GetSHA(), nil
+}
+
+// CreateTag creates an annotated tag on a specific commit
+func (c *Client) CreateTag(ctx context.Context, owner, repo, tagName, commitSHA, message string) error {
+	// Create the tag object
+	tag := github.CreateTag{
+		Tag:     tagName,
+		Message: message,
+		Object:  commitSHA,
+		Type:    "commit",
+	}
+
+	createdTag, _, err := c.Git.CreateTag(ctx, owner, repo, tag)
+	if err != nil {
+		return fmt.Errorf("failed to create tag object: %w", err)
+	}
+
+	// Create the reference pointing to the tag
+	ref := github.CreateRef{
+		Ref: "refs/tags/" + tagName,
+		SHA: createdTag.GetSHA(),
+	}
+
+	_, _, err = c.Git.CreateRef(ctx, owner, repo, ref)
+	if err != nil {
+		return fmt.Errorf("failed to create tag reference: %w", err)
+	}
+
+	return nil
+}
