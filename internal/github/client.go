@@ -78,3 +78,51 @@ func promptForToken() (string, error) {
 func (c *Client) GetToken() string {
 	return c.token
 }
+
+// Tag represents a GitHub tag
+type Tag struct {
+	Name   string
+	SHA    string
+}
+
+// ListTags fetches all tags from a GitHub repository
+func (c *Client) ListTags(ctx context.Context, owner, repo string) ([]Tag, error) {
+	var allTags []Tag
+	opts := &github.ListOptions{PerPage: 100}
+
+	for {
+		tags, resp, err := c.Repositories.ListTags(ctx, owner, repo, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list tags: %w", err)
+		}
+
+		for _, tag := range tags {
+			allTags = append(allTags, Tag{
+				Name: tag.GetName(),
+				SHA:  tag.GetCommit().GetSHA(),
+			})
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return allTags, nil
+}
+
+// ParseRepoURL extracts owner and repo from a GitHub URL
+func ParseRepoURL(url string) (owner, repo string, err error) {
+	url = strings.TrimSuffix(url, ".git")
+	url = strings.TrimPrefix(url, "https://github.com/")
+	url = strings.TrimPrefix(url, "http://github.com/")
+	url = strings.TrimPrefix(url, "git@github.com:")
+
+	parts := strings.Split(url, "/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid GitHub URL format")
+	}
+
+	return parts[0], parts[1], nil
+}

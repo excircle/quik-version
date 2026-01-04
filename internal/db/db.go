@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/excircle/quik-version/internal/config"
+	"github.com/excircle/quik-version/internal/version"
 )
 
 const schema = `
@@ -96,23 +97,38 @@ func (db *DB) SetConfigState(gitURL string) error {
 
 // GetLatestVersion returns the latest version record for a git URL
 func (db *DB) GetLatestVersion(gitURL string) (*Version, error) {
-	row := db.QueryRow(`
-		SELECT id, version, tag_name, git_sha, git_url, increment_type, created_at
-		FROM versions
-		WHERE git_url = ?
-		ORDER BY created_at DESC
-		LIMIT 1
-	`, gitURL)
+	versions, err := db.GetAllVersions(gitURL)
+	if err != nil {
+		return nil, err
+	}
 
-	var v Version
-	err := row.Scan(&v.ID, &v.Version, &v.TagName, &v.GitSHA, &v.GitURL, &v.IncrementType, &v.CreatedAt)
-	if err == sql.ErrNoRows {
+	if len(versions) == 0 {
 		return nil, nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get latest version: %w", err)
+
+	// Find the highest version using semver comparison
+	var latest *Version
+	var latestMajor, latestMinor, latestPatch int
+
+	for i := range versions {
+		v := &versions[i]
+		major, minor, patch, err := version.Parse(v.Version)
+		if err != nil {
+			continue // Skip invalid versions
+		}
+
+		if latest == nil ||
+			major > latestMajor ||
+			(major == latestMajor && minor > latestMinor) ||
+			(major == latestMajor && minor == latestMinor && patch > latestPatch) {
+			latest = v
+			latestMajor = major
+			latestMinor = minor
+			latestPatch = patch
+		}
 	}
-	return &v, nil
+
+	return latest, nil
 }
 
 // InsertVersion adds a new version record
