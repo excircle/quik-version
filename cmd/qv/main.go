@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/excircle/quik-version/internal/cmd"
 
 func main() {
-	fmt.Println("qv - Quik Version")
+	cmd.Execute()
 }
