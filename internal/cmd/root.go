@@ -37,11 +37,10 @@ func initConfig() {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
-		viper.SetConfigName("quik")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
+		viper.SetConfigFile("quik.conf")
 	}
 
+	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
