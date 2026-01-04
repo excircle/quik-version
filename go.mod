@@ -4,9 +4,11 @@ go 1.24.5
 
 require (
 	github.com/google/go-github/v80 v80.0.0
+	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	golang.org/x/oauth2 v0.34.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
